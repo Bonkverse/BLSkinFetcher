@@ -31,20 +31,17 @@ app.get('/api/getSkin', async (req, res) => {
             timeout: 30000
         });
 
-        await page.waitForURL(
-            url => url.toString().includes('skins.html#'),
-            { timeout: 10000 }
-        );
+        // ✅ RELIABLE WAIT
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(1500);
 
         const finalUrl = page.url();
         console.log("Final URL:", finalUrl);
 
         const urlObj = new URL(finalUrl);
 
-        // ✅ DO NOT DECODE
-        const rawHash = urlObj.hash
-            ? urlObj.hash.substring(1)
-            : null;
+        // 🚨 DO NOT DECODE
+        const rawHash = urlObj.hash ? urlObj.hash.substring(1) : null;
 
         let name = null;
         let author = null;

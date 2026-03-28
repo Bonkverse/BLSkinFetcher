@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const editorUrl = `https://editor.bonkverse.io/?skin=${skinCodeEl.value}`;
 
             editorLink.href = editorUrl;
-            editorLink.textContent = "✏️ Open in Editor";
+            editorLink.textContent = "View With Editor";
 
             resultDiv.style.display = "block";
             resultDiv.classList.add("fade-in");
