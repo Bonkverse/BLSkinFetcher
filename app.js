@@ -21,7 +21,7 @@ app.get('/api/getSkin', async (req, res) => {
 
     try {
         browser = await chromium.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
         });
 
         const page = await browser.newPage();
@@ -31,10 +31,9 @@ app.get('/api/getSkin', async (req, res) => {
             timeout: 30000
         });
 
-        await page.waitForURL(
-            url => url.toString().includes('skins.html#'),
-            { timeout: 10000 }
-        );
+        await page.waitForFunction(() => {
+            return window.location.hash.length > 1;
+        }, { timeout: 15000 });
 
         const finalUrl = page.url();
         console.log("Final URL:", finalUrl);
