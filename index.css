@@ -39,6 +39,7 @@ button {
     transition: 0.2s;
 }
 
+
 button:hover {
     background: #45a049;
 }
@@ -46,6 +47,20 @@ button:hover {
 button:disabled {
     background: #ccc;
     cursor: not-allowed;
+}
+
+.skin-bl-link {
+    display: inline-block;
+    padding: 10px 15px;
+    background: #007bff;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.skin-bl-link:hover {
+    background: #0056b3;
 }
 
 #status {
@@ -87,6 +102,7 @@ a {
 .copy-btn {
     margin-top: 10px;
     background: #007bff;
+    font-size: 16px;
 }
 
 .copy-btn:hover {

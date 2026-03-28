@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const authorEl = document.getElementById("skinAuthor");
         const finalUrlEl = document.getElementById("finalUrl");
         const skinCodeEl = document.getElementById("skinCode");
+        const editorLink = document.getElementById("editorLink");
 
         if (!input) {
             status.textContent = "❌ Please enter a link";
@@ -53,6 +54,11 @@ document.addEventListener("DOMContentLoaded", function() {
             finalUrlEl.textContent = data.finalUrl;
 
             skinCodeEl.value = data.skinCode || "N/A";
+
+            const editorUrl = `https://editor.bonkverse.io/?skin=${skinCodeEl.value}`;
+
+            editorLink.href = editorUrl;
+            editorLink.textContent = "✏️ Open in Editor";
 
             resultDiv.style.display = "block";
             resultDiv.classList.add("fade-in");
