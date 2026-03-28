@@ -41,18 +41,22 @@ app.get('/api/getSkin', async (req, res) => {
 
         const urlObj = new URL(finalUrl);
 
-        const hash = urlObj.hash
-            ? decodeURIComponent(urlObj.hash.substring(1))
+        // ✅ DO NOT DECODE
+        const rawHash = urlObj.hash
+            ? urlObj.hash.substring(1)
             : null;
 
         let name = null;
         let author = null;
         let skinCode = null;
 
-        if (hash) {
-            const parts = hash.split("|");
-            name = parts[0] || null;
-            author = parts[1] || null;
+        if (rawHash) {
+            const parts = rawHash.split("|");
+
+            name = parts[0] ? decodeURIComponent(parts[0]) : null;
+            author = parts[1] ? decodeURIComponent(parts[1]) : null;
+
+            // 🚨 PRESERVE EXACTLY
             skinCode = parts.slice(2).join("|") || null;
         }
 
