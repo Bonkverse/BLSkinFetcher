@@ -31,9 +31,15 @@ app.get('/api/getSkin', async (req, res) => {
             timeout: 30000
         });
 
-        // ✅ RELIABLE WAIT
         await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(1500);
+
+        // ✅ Wait for hash redirect (critical fix)
+        await page.waitForFunction(() => window.location.href.includes('#'), {
+            timeout: 15000
+        }).catch(() => {});
+
+        // slight buffer
+        await page.waitForTimeout(1000);
 
         const finalUrl = page.url();
         console.log("Final URL:", finalUrl);
