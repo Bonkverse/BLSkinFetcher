@@ -116,19 +116,32 @@ app.get('/api/getSkin', async (req, res) => {
         console.log("🚀 Fetching:", bonkleagueLink);
 
         const response = await fetch(bonkleagueLink, {
-            redirect: "follow",
             headers: {
                 "User-Agent": "Mozilla/5.0"
             }
         });
 
-        const finalUrl = response.url;
-        console.log("🏁 Final URL:", finalUrl);
+        const html = await response.text();
 
-        const data = extractFromUrl(finalUrl);
+        console.log("📄 HTML length:", html.length);
+
+        // 🔥 Extract redirect from JS
+        const match = html.match(/window\.location\s*=\s*["']([^"']+)["']/);
+
+        if (!match) {
+            throw new Error("Could not find redirect in HTML");
+        }
+
+        const redirectUrl = match[1];
+        console.log("➡️ Redirect URL:", redirectUrl);
+
+        const fullUrl = `https://bonkleagues.io/${redirectUrl}`;
+        console.log("🏁 Full URL:", fullUrl);
+
+        const data = extractFromUrl(fullUrl);
 
         if (!data) {
-            throw new Error("No hash found (likely blocked)");
+            throw new Error("Failed to extract hash from redirect");
         }
 
         return res.json(data);
@@ -137,7 +150,7 @@ app.get('/api/getSkin', async (req, res) => {
         console.error("🔥 ERROR:", err);
         return res.status(500).json({
             error: "Failed to extract skin",
-            hint: "Likely Cloudflare blocking"
+            hint: err.message
         });
     }
 });
