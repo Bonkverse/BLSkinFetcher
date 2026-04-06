@@ -25,6 +25,24 @@ function extractFromUrl(finalUrl) {
     };
 }
 
+// 🔥 Robust redirect extractor
+function extractRedirect(html) {
+    const patterns = [
+        /window\.location\s*=\s*["']([^"']+)["']/,
+        /window\.location\.href\s*=\s*["']([^"']+)["']/,
+        /location\.href\s*=\s*["']([^"']+)["']/,
+        /location\s*=\s*["']([^"']+)["']/,
+        /window\.location\.replace\(["']([^"']+)["']\)/,
+    ];
+
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) return match[1];
+    }
+
+    return null;
+}
+
 app.get('/api/getSkin', async (req, res) => {
     const bonkleagueLink = req.query.link;
 
@@ -37,25 +55,49 @@ app.get('/api/getSkin', async (req, res) => {
 
         const response = await fetch(bonkleagueLink, {
             headers: {
-                "User-Agent": "Mozilla/5.0"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Connection": "keep-alive"
             }
         });
+
+        console.log("📡 Status:", response.status);
 
         const html = await response.text();
 
         console.log("📄 HTML length:", html.length);
 
-        // 🔥 Extract redirect from JS
-        const match = html.match(/window\.location\s*=\s*["']([^"']+)["']/);
+        // 🚨 Detect Cloudflare block
+        if (
+            html.toLowerCase().includes("cloudflare") ||
+            html.toLowerCase().includes("not allowed") ||
+            response.status === 403
+        ) {
+            console.log("🚨 Cloudflare detected");
 
-        if (!match) {
+            return res.status(403).json({
+                error: "Blocked by Cloudflare",
+                hint: "Bonkleagues is blocking this request"
+            });
+        }
+
+        // 🔥 Extract redirect
+        const redirectUrl = extractRedirect(html);
+
+        if (!redirectUrl) {
+            console.log("❌ Could not find redirect. HTML preview:");
+            console.log(html.slice(0, 1000));
+
             throw new Error("Could not find redirect in HTML");
         }
 
-        const redirectUrl = match[1];
         console.log("➡️ Redirect URL:", redirectUrl);
 
-        const fullUrl = `https://bonkleagues.io/${redirectUrl}`;
+        const fullUrl = redirectUrl.startsWith("http")
+            ? redirectUrl
+            : `https://bonkleagues.io/${redirectUrl}`;
+
         console.log("🏁 Full URL:", fullUrl);
 
         const data = extractFromUrl(fullUrl);
@@ -64,10 +106,13 @@ app.get('/api/getSkin', async (req, res) => {
             throw new Error("Failed to extract hash from redirect");
         }
 
+        console.log("✅ Successfully extracted skin");
+
         return res.json(data);
 
     } catch (err) {
         console.error("🔥 ERROR:", err);
+
         return res.status(500).json({
             error: "Failed to extract skin",
             hint: err.message
