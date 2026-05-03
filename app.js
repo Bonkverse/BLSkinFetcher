@@ -150,7 +150,7 @@ const PORT = process.env.PORT || 3000;
 
 const EDITOR_RENDER_BUNDLE_URL =
     process.env.EDITOR_RENDER_BUNDLE_URL ||
-    "http://bv-skin-editor.railway.internal:3000/api/render-bundle";
+    "https://editor.bonkverse.io/api/render-bundle";
 
 const TEMP_DIR = path.join(__dirname, "temp");
 
