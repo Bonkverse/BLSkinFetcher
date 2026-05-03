@@ -145,6 +145,7 @@ const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const INTERNAL_RENDER_SECRET = process.env.INTERNAL_RENDER_SECRET || "";
 
 const EDITOR_RENDER_URL =
     process.env.EDITOR_RENDER_URL ||
@@ -209,7 +210,8 @@ async function renderWithEditor(skinCode) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            "x-internal-render-secret": INTERNAL_RENDER_SECRET
         },
         body: JSON.stringify({ skinCode })
     });
