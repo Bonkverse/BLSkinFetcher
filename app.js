@@ -65,6 +65,8 @@ app.get('/api/getSkin', async (req, res) => {
         console.log("📡 Status:", response.status);
 
         const html = await response.text();
+        
+        console.log("📄 HTML content:", html);
 
         console.log("📄 HTML length:", html.length);
 
