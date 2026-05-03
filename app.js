@@ -1,12 +1,12 @@
-const express = require('express');
+const express = require("express");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+app.get("/", (req, res) => {
+    res.sendFile(__dirname + "/index.html");
 });
 
 function extractFromUrl(finalUrl) {
@@ -25,14 +25,13 @@ function extractFromUrl(finalUrl) {
     };
 }
 
-// 🔥 Robust redirect extractor
 function extractRedirect(html) {
     const patterns = [
         /window\.location\s*=\s*["']([^"']+)["']/,
         /window\.location\.href\s*=\s*["']([^"']+)["']/,
         /location\.href\s*=\s*["']([^"']+)["']/,
         /location\s*=\s*["']([^"']+)["']/,
-        /window\.location\.replace\(["']([^"']+)["']\)/,
+        /window\.location\.replace\(["']([^"']+)["']\)/
     ];
 
     for (const pattern of patterns) {
@@ -43,11 +42,26 @@ function extractRedirect(html) {
     return null;
 }
 
-app.get('/api/getSkin', async (req, res) => {
+function isRealCloudflareBlock(html, status) {
+    const lower = html.toLowerCase();
+
+    return (
+        status === 403 ||
+        lower.includes("cf-challenge") ||
+        lower.includes("just a moment") ||
+        lower.includes("attention required") ||
+        lower.includes("checking your browser") ||
+        lower.includes("cloudflare ray id")
+    );
+}
+
+app.get("/api/getSkin", async (req, res) => {
     const bonkleagueLink = req.query.link;
 
     if (!bonkleagueLink) {
-        return res.status(400).json({ error: 'Link required' });
+        return res.status(400).json({
+            error: "Link required"
+        });
     }
 
     try {
@@ -55,7 +69,8 @@ app.get('/api/getSkin', async (req, res) => {
 
         const response = await fetch(bonkleagueLink, {
             headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
                 "Accept": "text/html,application/xhtml+xml",
                 "Accept-Language": "en-US,en;q=0.9",
                 "Connection": "keep-alive"
@@ -65,52 +80,52 @@ app.get('/api/getSkin', async (req, res) => {
         console.log("📡 Status:", response.status);
 
         const html = await response.text();
-        
-        console.log("📄 HTML content:", html);
 
         console.log("📄 HTML length:", html.length);
+        console.log("📄 HTML preview:", html);
 
-        // 🚨 Detect Cloudflare block
-        if (
-            html.toLowerCase().includes("cloudflare") ||
-            html.toLowerCase().includes("not allowed") ||
-            response.status === 403
-        ) {
-            console.log("🚨 Cloudflare detected");
+        // IMPORTANT:
+        // BonkLeagues may include normal Cloudflare analytics scripts.
+        // So extract the redirect first before assuming it is blocked.
+        const redirectUrl = extractRedirect(html);
+
+        if (redirectUrl) {
+            console.log("➡️ Redirect URL:", redirectUrl);
+
+            const fullUrl = redirectUrl.startsWith("http")
+                ? redirectUrl
+                : `https://bonkleagues.io/${redirectUrl}`;
+
+            console.log("🏁 Full URL:", fullUrl);
+
+            const data = extractFromUrl(fullUrl);
+
+            if (!data || !data.skinCode) {
+                throw new Error("Failed to extract skin data from redirect URL");
+            }
+
+            console.log("✅ Successfully extracted skin");
+
+            return res.json(data);
+        }
+
+        // Only now check for a real Cloudflare block
+        if (isRealCloudflareBlock(html, response.status)) {
+            console.log("🚨 Real Cloudflare block detected");
 
             return res.status(403).json({
                 error: "Blocked by Cloudflare",
-                hint: "Bonkleagues is blocking this request"
+                hint: "BonkLeagues blocked the request before returning a usable redirect"
             });
         }
 
-        // 🔥 Extract redirect
-        const redirectUrl = extractRedirect(html);
+        console.log("❌ Could not find redirect. HTML preview:");
+        console.log(html);
 
-        if (!redirectUrl) {
-            console.log("❌ Could not find redirect. HTML preview:");
-            console.log(html.slice(0, 1000));
-
-            throw new Error("Could not find redirect in HTML");
-        }
-
-        console.log("➡️ Redirect URL:", redirectUrl);
-
-        const fullUrl = redirectUrl.startsWith("http")
-            ? redirectUrl
-            : `https://bonkleagues.io/${redirectUrl}`;
-
-        console.log("🏁 Full URL:", fullUrl);
-
-        const data = extractFromUrl(fullUrl);
-
-        if (!data) {
-            throw new Error("Failed to extract hash from redirect");
-        }
-
-        console.log("✅ Successfully extracted skin");
-
-        return res.json(data);
+        return res.status(500).json({
+            error: "Failed to extract skin",
+            hint: "Could not find redirect in BonkLeagues HTML"
+        });
 
     } catch (err) {
         console.error("🔥 ERROR:", err);

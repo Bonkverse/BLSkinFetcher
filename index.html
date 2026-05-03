@@ -7,33 +7,30 @@
     <script src="skinFetcher.js" defer></script>
     <title>BLSkinFetcher</title>
 </head>
-    <body>
-        <div class="container">
+<body>
+    <div class="container">
+        <h2>🎨 Bonk Skin Fetcher</h2>
 
-            <h2>🎨 Bonk Skin Fetcher</h2>
+        <input type="text" id="bonkleagueLink" placeholder="Paste BonkLeagues link">
+        <button id="fetchSkinButton">Fetch</button>
 
-            <input type="text" id="bonkleagueLink" placeholder="Paste BonkLeagues link">
-            <button id="fetchSkinButton">Fetch</button>
+        <p id="status"></p>
 
-            <p id="status"></p>
+        <div id="result" class="result" style="display:none;">
+            <p><strong>Name:</strong> <span id="skinName"></span></p>
+            <p><strong>Author:</strong> <span id="skinAuthor"></span></p>
 
-            <div id="result" class="result" style="display:none;">
-                <p><strong>Name:</strong> <span id="skinName"></span></p>
-                <p><strong>Author:</strong> <span id="skinAuthor"></span></p>
+            <p><strong>Final URL:</strong></p>
+            <a id="finalUrl" target="_blank"></a>
 
-                <p><strong>Final URL:</strong></p>
-                <a id="finalUrl" target="_blank"></a>
+            <p><strong>Skin Code:</strong></p>
+            <textarea id="skinCode" rows="6" readonly></textarea>
 
+            <button id="copyButton" class="copy-btn">Copy Skin Code</button>
 
-                <p><strong>Skin Code:</strong></p>
-                <textarea id="skinCode" rows="6" readonly></textarea>
-
-                <button id="copyButton" class="copy-btn">Copy Skin Code</button>
-
-                <p><strong>View with Editor:</strong></p>
-                <a id="editorLink" target="_blank" class="skin-bl-link"></a>
-            </div>
-
+            <p><strong>View with Editor:</strong></p>
+            <a id="editorLink" target="_blank" class="skin-bl-link"></a>
         </div>
-    </body>
+    </div>
+</body>
 </html>

@@ -2,19 +2,20 @@ window.onload = () => {
     document.getElementById("bonkleagueLink").focus();
 };
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     const input = document.getElementById("bonkleagueLink");
     const button = document.getElementById("fetchSkinButton");
 
     input.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
-            e.preventDefault(); // prevents weird behavior
-            button.click();     // triggers same logic as button
+            e.preventDefault();
+            button.click();
         }
     });
 
-    document.getElementById("fetchSkinButton").addEventListener("click", async function () {
-        const input = document.getElementById("bonkleagueLink").value;
+    button.addEventListener("click", async function () {
+        const link = input.value.trim();
+
         const status = document.getElementById("status");
         const resultDiv = document.getElementById("result");
 
@@ -24,13 +25,12 @@ document.addEventListener("DOMContentLoaded", function() {
         const skinCodeEl = document.getElementById("skinCode");
         const editorLink = document.getElementById("editorLink");
 
-        if (!input) {
+        if (!link) {
             status.textContent = "❌ Please enter a link";
             status.className = "error";
             return;
         }
 
-        // 🔥 Loading state
         button.disabled = true;
         button.textContent = "Fetching...";
         status.textContent = "⏳ Fetching skin...";
@@ -38,12 +38,13 @@ document.addEventListener("DOMContentLoaded", function() {
         resultDiv.style.display = "none";
 
         try {
-            const res = await fetch(`/api/getSkin?link=${encodeURIComponent(input)}`);
-            if (!res.ok) throw new Error();
-
+            const res = await fetch(`/api/getSkin?link=${encodeURIComponent(link)}`);
             const data = await res.json();
 
-            // ✅ Success UI
+            if (!res.ok) {
+                throw new Error(data.hint || data.error || "Failed to fetch skin");
+            }
+
             status.textContent = "✅ Skin fetched!";
             status.className = "success";
 
@@ -55,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             skinCodeEl.value = data.skinCode || "N/A";
 
-            const editorUrl = `https://editor.bonkverse.io/?skin=${skinCodeEl.value}`;
+            const editorUrl = `https://editor.bonkverse.io/?skin=${encodeURIComponent(data.skinCode)}`;
 
             editorLink.href = editorUrl;
             editorLink.textContent = "View With Editor";
@@ -64,11 +65,10 @@ document.addEventListener("DOMContentLoaded", function() {
             resultDiv.classList.add("fade-in");
 
         } catch (err) {
-            status.textContent = "❌ Failed to fetch skin";
+            status.textContent = `❌ ${err.message}`;
             status.className = "error";
         }
 
-        // 🔁 Reset button
         button.disabled = false;
         button.textContent = "Fetch";
     });
@@ -78,6 +78,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         const btn = document.getElementById("copyButton");
         btn.textContent = "Copied!";
-        setTimeout(() => btn.textContent = "Copy Skin Code", 1500);
+        setTimeout(() => {
+            btn.textContent = "Copy Skin Code";
+        }, 1500);
     });
 });
