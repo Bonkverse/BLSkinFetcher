@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLSkinFetcher</title>
+
     <link rel="stylesheet" href="index.css">
     <script src="skinFetcher.js" defer></script>
-    <title>BLSkinFetcher</title>
 </head>
 <body>
     <div class="container">
@@ -17,6 +18,13 @@
         <p id="status"></p>
 
         <div id="result" class="result" style="display:none;">
+            <p><strong>Rendered Preview:</strong></p>
+            <img
+                id="previewImage"
+                alt="Rendered Bonk.io skin preview"
+                style="display:none; width: 200px; height: 200px; object-fit: contain;"
+            >
+
             <p><strong>Name:</strong> <span id="skinName"></span></p>
             <p><strong>Author:</strong> <span id="skinAuthor"></span></p>
 
