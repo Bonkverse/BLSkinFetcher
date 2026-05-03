@@ -203,15 +203,31 @@ function isRealCloudflareBlock(html, status) {
 }
 
 async function renderWithEditor(skinCode) {
+    console.log("🎯 Calling editor render URL:", EDITOR_RENDER_URL);
+
     const response = await fetch(EDITOR_RENDER_URL, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Accept": "application/json"
         },
         body: JSON.stringify({ skinCode })
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get("content-type") || "";
+    const rawText = await response.text();
+
+    console.log("🎯 Editor status:", response.status);
+    console.log("🎯 Editor content-type:", contentType);
+    console.log("🎯 Editor response preview:", rawText.slice(0, 300));
+
+    if (!contentType.includes("application/json")) {
+        throw new Error(
+            `Editor returned non-JSON from ${EDITOR_RENDER_URL}. Preview: ${rawText.slice(0, 120)}`
+        );
+    }
+
+    const data = JSON.parse(rawText);
 
     if (!response.ok || !data.ok) {
         throw new Error(data.hint || data.error || "Editor render failed");
@@ -322,6 +338,10 @@ app.get("/api/getSkin", async (req, res) => {
             hint: err.message
         });
     }
+});
+
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 app.listen(PORT, () => {
