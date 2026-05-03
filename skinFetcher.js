@@ -24,7 +24,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const finalUrlEl = document.getElementById("finalUrl");
         const skinCodeEl = document.getElementById("skinCode");
         const editorLink = document.getElementById("editorLink");
-        const previewImage = document.getElementById("previewImage");
 
         if (!link) {
             status.textContent = "❌ Please enter a link";
@@ -34,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         button.disabled = true;
         button.textContent = "Fetching...";
-        status.textContent = "⏳ Fetching and rendering skin...";
+        status.textContent = "⏳ Fetching skin...";
         status.className = "loading";
         resultDiv.style.display = "none";
 
@@ -46,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 throw new Error(data.hint || data.error || "Failed to fetch skin");
             }
 
-            status.textContent = "✅ Skin fetched and rendered!";
+            status.textContent = "✅ Skin fetched!";
             status.className = "success";
 
             nameEl.textContent = data.name || "N/A";
@@ -62,16 +61,9 @@ document.addEventListener("DOMContentLoaded", function () {
             editorLink.href = editorUrl;
             editorLink.textContent = "View With Editor";
 
-            if (data.rendered && data.rendered.pngBase64) {
-                previewImage.src = `data:image/png;base64,${data.rendered.pngBase64}`;
-                previewImage.style.display = "block";
-            } else {
-                previewImage.removeAttribute("src");
-                previewImage.style.display = "none";
-            }
-
             resultDiv.style.display = "block";
             resultDiv.classList.add("fade-in");
+
         } catch (err) {
             status.textContent = `❌ ${err.message}`;
             status.className = "error";
@@ -86,7 +78,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const btn = document.getElementById("copyButton");
         btn.textContent = "Copied!";
-
         setTimeout(() => {
             btn.textContent = "Copy Skin Code";
         }, 1500);
