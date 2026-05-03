@@ -270,7 +270,7 @@ app.get("/api/getSkin", async (req, res) => {
         const html = await response.text();
 
         console.log("📄 HTML length:", html.length);
-        console.log("📄 HTML preview:", html.slice(0, 1200));
+        console.log("📄 HTML preview:", html);
 
         const redirectUrl = extractRedirect(html);
 
