@@ -1,146 +1,3 @@
-// const express = require("express");
-
-// const app = express();
-// const PORT = process.env.PORT || 3000;
-
-// app.use(express.static(__dirname));
-
-// app.get("/", (req, res) => {
-//     res.sendFile(__dirname + "/index.html");
-// });
-
-// function extractFromUrl(finalUrl) {
-//     const urlObj = new URL(finalUrl);
-//     const rawHash = urlObj.hash ? urlObj.hash.substring(1) : null;
-
-//     if (!rawHash) return null;
-
-//     const parts = rawHash.split("|");
-
-//     return {
-//         name: parts[0] ? decodeURIComponent(parts[0]) : null,
-//         author: parts[1] ? decodeURIComponent(parts[1]) : null,
-//         skinCode: parts.slice(2).join("|") || null,
-//         finalUrl
-//     };
-// }
-
-// function extractRedirect(html) {
-//     const patterns = [
-//         /window\.location\s*=\s*["']([^"']+)["']/,
-//         /window\.location\.href\s*=\s*["']([^"']+)["']/,
-//         /location\.href\s*=\s*["']([^"']+)["']/,
-//         /location\s*=\s*["']([^"']+)["']/,
-//         /window\.location\.replace\(["']([^"']+)["']\)/
-//     ];
-
-//     for (const pattern of patterns) {
-//         const match = html.match(pattern);
-//         if (match) return match[1];
-//     }
-
-//     return null;
-// }
-
-// function isRealCloudflareBlock(html, status) {
-//     const lower = html.toLowerCase();
-
-//     return (
-//         status === 403 ||
-//         lower.includes("cf-challenge") ||
-//         lower.includes("just a moment") ||
-//         lower.includes("attention required") ||
-//         lower.includes("checking your browser") ||
-//         lower.includes("cloudflare ray id")
-//     );
-// }
-
-// app.get("/api/getSkin", async (req, res) => {
-//     const bonkleagueLink = req.query.link;
-
-//     if (!bonkleagueLink) {
-//         return res.status(400).json({
-//             error: "Link required"
-//         });
-//     }
-
-//     try {
-//         console.log("🚀 Fetching:", bonkleagueLink);
-
-//         const response = await fetch(bonkleagueLink, {
-//             headers: {
-//                 "User-Agent":
-//                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-//                 "Accept": "text/html,application/xhtml+xml",
-//                 "Accept-Language": "en-US,en;q=0.9",
-//                 "Connection": "keep-alive"
-//             }
-//         });
-
-//         console.log("📡 Status:", response.status);
-
-//         const html = await response.text();
-
-//         console.log("📄 HTML length:", html.length);
-//         console.log("📄 HTML preview:", html);
-
-//         // IMPORTANT:
-//         // BonkLeagues may include normal Cloudflare analytics scripts.
-//         // So extract the redirect first before assuming it is blocked.
-//         const redirectUrl = extractRedirect(html);
-
-//         if (redirectUrl) {
-//             console.log("➡️ Redirect URL:", redirectUrl);
-
-//             const fullUrl = redirectUrl.startsWith("http")
-//                 ? redirectUrl
-//                 : `https://bonkleagues.io/${redirectUrl}`;
-
-//             console.log("🏁 Full URL:", fullUrl);
-
-//             const data = extractFromUrl(fullUrl);
-
-//             if (!data || !data.skinCode) {
-//                 throw new Error("Failed to extract skin data from redirect URL");
-//             }
-
-//             console.log("✅ Successfully extracted skin");
-
-//             return res.json(data);
-//         }
-
-//         // Only now check for a real Cloudflare block
-//         if (isRealCloudflareBlock(html, response.status)) {
-//             console.log("🚨 Real Cloudflare block detected");
-
-//             return res.status(403).json({
-//                 error: "Blocked by Cloudflare",
-//                 hint: "BonkLeagues blocked the request before returning a usable redirect"
-//             });
-//         }
-
-//         console.log("❌ Could not find redirect. HTML preview:");
-//         console.log(html);
-
-//         return res.status(500).json({
-//             error: "Failed to extract skin",
-//             hint: "Could not find redirect in BonkLeagues HTML"
-//         });
-
-//     } catch (err) {
-//         console.error("🔥 ERROR:", err);
-
-//         return res.status(500).json({
-//             error: "Failed to extract skin",
-//             hint: err.message
-//         });
-//     }
-// });
-
-// app.listen(PORT, () => {
-//     console.log(`Server running on port ${PORT}`);
-// });
-
 const express = require("express");
 const fs = require("fs/promises");
 const path = require("path");
@@ -162,17 +19,107 @@ app.get("/", (req, res) => {
     res.sendFile(__dirname + "/index.html");
 });
 
+function decodeHtmlEntities(str) {
+    if (!str) return str;
+
+    return str
+        .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&");
+}
+
+function safeDecode(str) {
+    try {
+        return decodeURIComponent(str);
+    } catch {
+        return str;
+    }
+}
+
+function getMetaContent(html, property) {
+    // Handles either attribute order: property before content, or content before property
+    const patterns = [
+        new RegExp(
+            `<meta[^>]*?property=["']${property}["'][^>]*?content=["']([^"']*)["']`,
+            "i"
+        ),
+        new RegExp(
+            `<meta[^>]*?content=["']([^"']*)["'][^>]*?property=["']${property}["']`,
+            "i"
+        )
+    ];
+
+    for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) return decodeHtmlEntities(match[1]);
+    }
+
+    return null;
+}
+
+function getTitle(html) {
+    const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    return match ? decodeHtmlEntities(match[1]).trim() : null;
+}
+
+// Title format: 'Skin Name' by author name
+function parseTitle(title) {
+    if (!title) return { name: null, author: null };
+
+    const idx = title.lastIndexOf(" by ");
+
+    if (idx === -1) {
+        return { name: title.replace(/^['"]|['"]$/g, ""), author: null };
+    }
+
+    const name = title.slice(0, idx).trim().replace(/^['"]|['"]$/g, "");
+    const author = title.slice(idx + 4).trim();
+
+    return { name: name || null, author: author || null };
+}
+
+// Primary method: BonkLeagues embeds the skin code in the og:image URL
+function extractFromMetadata(html, pageUrl) {
+    const ogImage = getMetaContent(html, "og:image");
+    if (!ogImage) return null;
+
+    let skinCode = null;
+
+    try {
+        const imgUrl = new URL(ogImage, "https://bonkleagues.io");
+        // searchParams automatically decodes %2B -> +, %2F -> /, etc.
+        skinCode = imgUrl.searchParams.get("skinCode");
+    } catch (err) {
+        console.log("⚠️ Could not parse og:image URL:", err.message);
+        return null;
+    }
+
+    if (!skinCode) return null;
+
+    const { name, author } = parseTitle(getTitle(html));
+    const finalUrl = getMetaContent(html, "og:url") || pageUrl;
+
+    return { name, author, skinCode, finalUrl };
+}
+
+// Fallback method: URL like skins.html#Name%7CAuthor%7CSkinCode
+// The hash is percent-encoded (including the | separators), so decode BEFORE splitting.
 function extractFromUrl(finalUrl) {
     const urlObj = new URL(finalUrl);
     const rawHash = urlObj.hash ? urlObj.hash.substring(1) : null;
 
     if (!rawHash) return null;
 
-    const parts = rawHash.split("|");
+    const decodedHash = safeDecode(rawHash);
+    const parts = decodedHash.split("|");
 
     return {
-        name: parts[0] ? decodeURIComponent(parts[0]) : null,
-        author: parts[1] ? decodeURIComponent(parts[1]) : null,
+        name: parts[0] || null,
+        author: parts[1] || null,
         skinCode: parts.slice(2).join("|") || null,
         finalUrl
     };
@@ -180,11 +127,12 @@ function extractFromUrl(finalUrl) {
 
 function extractRedirect(html) {
     const patterns = [
-        /window\.location\s*=\s*["']([^"']+)["']/,
-        /window\.location\.href\s*=\s*["']([^"']+)["']/,
-        /location\.href\s*=\s*["']([^"']+)["']/,
-        /location\s*=\s*["']([^"']+)["']/,
-        /window\.location\.replace\(["']([^"']+)["']\)/
+        /window\.location\s*=\s*["'`]([^"'`]+)["'`]/,
+        /window\.location\.href\s*=\s*["'`]([^"'`]+)["'`]/,
+        /location\.href\s*=\s*["'`]([^"'`]+)["'`]/,
+        /location\s*=\s*["'`]([^"'`]+)["'`]/,
+        /window\.location\.replace\(["'`]([^"'`]+)["'`]\)/,
+        /window\.location\.assign\(["'`]([^"'`]+)["'`]\)/
     ];
 
     for (const pattern of patterns) {
@@ -226,16 +174,23 @@ async function fetchSkinDataFromBonkLeagues(bonkleagueLink) {
     const html = await response.text();
 
     console.log("📄 HTML length:", html.length);
-    console.log("📄 HTML preview:", html.slice(0, 1200));
+    console.log("📄 HTML preview:", html.slice(0, 500));
 
+    // 1) Primary: metadata (og:image contains the skinCode, title has name/author)
+    const metaData = extractFromMetadata(html, bonkleagueLink);
+
+    if (metaData) {
+        console.log("✅ Successfully extracted skin from metadata");
+        return metaData;
+    }
+
+    // 2) Fallback: JS redirect with #name|author|skinCode in the hash
     const redirectUrl = extractRedirect(html);
 
     if (redirectUrl) {
         console.log("➡️ Redirect URL:", redirectUrl);
 
-        const fullUrl = redirectUrl.startsWith("http")
-            ? redirectUrl
-            : `https://bonkleagues.io/${redirectUrl}`;
+        const fullUrl = new URL(redirectUrl, "https://bonkleagues.io/").toString();
 
         console.log("🏁 Full URL:", fullUrl);
 
@@ -245,18 +200,18 @@ async function fetchSkinDataFromBonkLeagues(bonkleagueLink) {
             throw new Error("Failed to extract skin data from redirect URL");
         }
 
-        console.log("✅ Successfully extracted skin");
+        console.log("✅ Successfully extracted skin from redirect");
         return data;
     }
 
     if (isRealCloudflareBlock(html, response.status)) {
-        const err = new Error("BonkLeagues blocked the request before returning a usable redirect");
+        const err = new Error("BonkLeagues blocked the request before returning usable data");
         err.statusCode = 403;
         err.error = "Blocked by Cloudflare";
         throw err;
     }
 
-    throw new Error("Could not find redirect in BonkLeagues HTML");
+    throw new Error("Could not find skin code in BonkLeagues HTML (no og:image skinCode or redirect)");
 }
 
 async function getMediaForSkinCode(skinCode) {
